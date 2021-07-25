@@ -1,0 +1,30 @@
+CREATE TYPE case_type AS ENUM (
+	'confirmed',
+	'dead'
+	'recovered'
+);
+
+CREATE TABLE IF NOT EXISTS countries (
+	id 			    SERIAL PRIMARY KEY,
+	name		    VARCHAR NOT NULL,
+	alpha2 		  VARCHAR(2) NOT NULL,
+	alpha3		  VARCHAR(3) NOT NULL,
+	location	  GEOGRAPHY(POINT) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS provinces (
+	id			    SERIAL PRIMARY KEY,
+	name		    VARCHAR NOT NULL,
+	location	  GEOGRAPHY(POINT) NOT NULL,
+  code        VARCHAR(3),
+	country_id	SERIAL REFERENCES countries (id)
+);
+
+CREATE TABLE IF NOT EXISTS cases (
+	id			    SERIAL PRIMARY KEY,
+	type		    case_type,
+	amount		  BIGINT,
+	date		    DATE,
+	country_id	SERIAL REFERENCES countries (id),
+	province_id SERIAL REFERENCES provinces (id)
+);
