@@ -1,9 +1,8 @@
-from sqlalchemy.engine.base import Connection
-from covid_data.db import get_db
+from sqlalchemy.engine.base import Connection, Engine
 
 
-def country_exists(country: str) -> bool:
-    with get_db().connect() as conn:
+def country_exists(country: str, engine: Engine) -> bool:
+    with engine.connect() as conn:
         conn: Connection
 
         result = conn.execute(
