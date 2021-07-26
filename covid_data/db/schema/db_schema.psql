@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TYPE case_type AS ENUM (
 	'confirmed',
 	'dead'
