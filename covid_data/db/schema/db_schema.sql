@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 DO $$ BEGIN
     CREATE TYPE case_type AS ENUM (
 		'confirmed',
-		'dead'
+		'dead',
 		'recovered'
 	);
 EXCEPTION

@@ -1,3 +1,5 @@
+import dataclasses
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -9,12 +11,17 @@ from sqlalchemy.engine.base import Engine
 
 from covid_data.db import get_db, queries
 from covid_data.db.queries import create_case, place_exists
+from covid_data.utils import COMPONENTS_MAPPING
 
 URL = f"https://api.opencagedata.com/geocode/v1/json?key={os.environ.get('CAGEDATA_API_KEY')}&no_annotations=1"
 logger = getLogger("covid_data")
 
 
 class PlaceInfoFetchException(Exception):
+    pass
+
+
+class PlaceInfoNotCompleteException(Exception):
     pass
 
 
@@ -54,13 +61,19 @@ class PlaceInfo:
     state: str = None
     state_code: str = None
 
+    def __init__(self, **kwargs):
+        names = set([f.name for f in dataclasses.fields(self)])
+        for k, v in kwargs.items():
+            if k in names:
+                setattr(self, k, v)
 
-def get_place_info(place: str) -> PlaceInfo:
-    response = requests.get(URL, {"q": place})
+
+def get_place_info(place_name: str) -> PlaceInfo:
+    response = requests.get(URL, {"q": place_name})
 
     if response.status_code > 399:
         logger.error(
-            f"Error while retrieving place info {place}. Error {response.status_code}"
+            f"Error while retrieving place info {place_name}. Error {response.status_code}"
         )
         logger.error(response.json())
 
@@ -85,6 +98,12 @@ def get_place_info(place: str) -> PlaceInfo:
 
     res = PlaceInfo(**components)
 
+    if res.type in COMPONENTS_MAPPING:
+        res.type = COMPONENTS_MAPPING[res.type]
+
+    if not hasattr(res, f"{res.type}") or getattr(res, f"{res.type}") is None:
+        setattr(res, f"{res.type}", place_name)
+
     res.location = Point(**place["geometry"])
 
     return res
@@ -94,7 +113,11 @@ def extract_location(place_info: PlaceInfo, place_type: str) -> Point:
     res = Point()
     if place_info.type != place_type:
         correct_place_info = get_place_info(
-            place_info[f"{place_type.replace(PlaceType.COUNTRY, 'county')}_code"]
+            getattr(place_info, f"{place_type.replace(PlaceType.CITY, 'county')}_code")
+            or getattr(place_info, f"{place_type.replace(PlaceType.CITY, 'county')}")
+            or getattr(place_info, f"{place_type}_code")
+            or getattr(place_info, f"{place_type}")
+            or getattr(place_info, f"{place_info.type}")
         )
         if correct_place_info is None:
             raise PlaceInfoFetchException()
@@ -116,6 +139,9 @@ def create_country(country: str, engine: Engine, place_info: PlaceInfo = None) -
         place_info = get_place_info(country)
         if place_info is None:
             raise PlaceInfoFetchException()
+
+    if not hasattr(place_info, "country"):
+        place_info.country = country
 
     point = extract_location(place_info, PlaceType.COUNTRY)
 
@@ -139,12 +165,15 @@ def create_province(province: str, engine: Engine, place_info: PlaceInfo = None)
         if place_info is None:
             raise PlaceInfoFetchException()
 
+    if not hasattr(place_info, "country"):
+        raise PlaceInfoNotCompleteException()
+
     country_id = create_country(place_info.country, engine, place_info)
 
-    point = extract_location(place_info, PlaceType.COUNTRY)
+    point = extract_location(place_info, PlaceType.STATE)
 
     province_data = {
-        "name": place_info.state,
+        "name": place_info.state or getattr(place_info, f"{place_info.type}"),
         "code": place_info.state_code,
         "country_id": country_id,
         "lat": point.lat,
@@ -184,11 +213,17 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> bool:
     num_rows = df.shape[0]
 
     for index, row in df.iterrows():
-        print(f"Processing row {index + 1}/{num_rows}")
+        logger.info(f"Processing row {index + 1}/{num_rows}")
         state = row["Province/State"]
         country = row["Country/Region"]
+        lat = row["Lat"]
+        lng = row["Long"]
         province_id = None
         country_id = None
+
+        if (pd.isna(lat) or pd.isna(lng)) or (float(lat) == 0 or float(lng) == 0):
+            logger.warning(f"Skipping line {index + 2} due to missing location")
+            continue
 
         try:
             if not pd.isna(state):
@@ -197,14 +232,22 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> bool:
             if not pd.isna(country):
                 country_id = create_country(country, engine)
         except PlaceInfoFetchException:
-            logger.error(f"Skipping line {index}")
+            logger.error(f"Skipping line {index + 2}")
+        except PlaceInfoNotCompleteException:
+            logger.error(
+                f"Skipping line {index + 2} due to incomplete information in fetching"
+            )
+        except (TypeError, KeyError):
+            logger.error(
+                f"Skipping line {index + 2} due to missing information in fetching"
+            )
 
         row = row.drop(["Province/State", "Country/Region", "Lat", "Long"])
 
         num_columns = row.shape[0]
 
         for i, date_str in enumerate(row.index):
-            print(f"Processing case {i+1}/{num_columns}", end="\r")
+            logger.debug(f"Processing case {i+1}/{num_columns}")
             date_padded: str
 
             date_padded = "/".join([part.zfill(2) for part in date_str.split("/")])
@@ -222,8 +265,6 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> bool:
 
             create_case(case, engine)
 
-        print()
-
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -232,10 +273,13 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    init_logger(os.path.join(os.path.dirname(__file__), "../../logs/covid_data.log"))
-
-    df = pd.read_csv(
-        os.path.join(os.path.dirname(__file__), "../../data/confirmed_global.csv")
+    init_logger(
+        os.path.join(os.path.dirname(__file__), "../../logs/covid_data.log"),
+        logging.INFO,
     )
 
-    insert_data(df, CaseType.CONFIRMED)
+    df = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), "../../data/recovered_global.csv")
+    )
+
+    insert_data(df, CaseType.RECOVERED)
