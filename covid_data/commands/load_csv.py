@@ -17,6 +17,10 @@ URL = f"https://api.opencagedata.com/geocode/v1/json?key={os.environ.get('CAGEDA
 logger = getLogger("covid_data")
 
 
+class PlaceNameNotProvidedException(Exception):
+    pass
+
+
 class PlaceInfoFetchException(Exception):
     pass
 
@@ -69,6 +73,9 @@ class PlaceInfo:
 
 
 def get_place_info(place_name: str) -> PlaceInfo:
+    if not place_name:
+        raise PlaceNameNotProvidedException()
+
     response = requests.get(URL, {"q": place_name})
 
     if response.status_code > 399:
@@ -236,6 +243,10 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> bool:
         except PlaceInfoNotCompleteException:
             logger.error(
                 f"Skipping line {index + 2} due to incomplete information in fetching"
+            )
+        except PlaceNameNotProvidedException:
+            logger.error(
+                f"Skipping line {index + 2} because no place name could be extracted"
             )
         except (TypeError, KeyError):
             logger.error(

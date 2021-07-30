@@ -4,7 +4,7 @@ class MockDB(object):
     def connect(self, *args, **kwargs):
         return self
 
-    def execute(self, *args, **kwargs):
+    def exec_driver_sql(self, *args, **kwargs):
         return self.execute_return
 
     def __enter__(self):

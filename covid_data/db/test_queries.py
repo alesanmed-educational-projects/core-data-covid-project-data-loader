@@ -1,9 +1,11 @@
 import unittest
 from collections import namedtuple
+from datetime import datetime
 from unittest import TestCase
 from unittest.mock import MagicMock
 
 from covid_data.db.queries import (
+    create_case,
     create_country,
     create_county,
     create_province,
@@ -31,17 +33,17 @@ class TestPlaceExists(TestCase):
         """Place exists should call execute once"""
         mockDb = MockDB()
 
-        mockDb.execute = MagicMock(return_value=[(0,)])
+        mockDb.exec_driver_sql = MagicMock(return_value=[(0,)])
 
         place_exists("Test", mockDb)
 
-        mockDb.execute.assert_called_once()
+        mockDb.exec_driver_sql.assert_called_once()
 
     def test_should_return_id(self):
         """Place exists should return id if exists"""
         mockDb = MockDB()
 
-        mockDb.execute_return = [self.mock_id]
+        mockDb.execute_return = [(self.mock_id,)]
 
         res = place_exists("Test", mockDb)
 
@@ -88,11 +90,11 @@ class TestCreateCountry(TestCase):
         """Create country should call execute once"""
         mockDb = MockDB()
 
-        mockDb.execute = MagicMock(return_value=self.execute_return)
+        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
 
         create_country(self.mock_country, mockDb)
 
-        mockDb.execute.assert_called_once()
+        mockDb.exec_driver_sql.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create country should return inserted id"""
@@ -135,11 +137,11 @@ class TestCreateProvince(TestCase):
         """Create province should call execute once"""
         mockDb = MockDB()
 
-        mockDb.execute = MagicMock(return_value=self.execute_return)
+        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
 
         create_province(self.mock_province, mockDb)
 
-        mockDb.execute.assert_called_once()
+        mockDb.exec_driver_sql.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create province should return inserted id"""
@@ -182,11 +184,11 @@ class TestCreateCounty(TestCase):
         """Create county should call execute once"""
         mockDb = MockDB()
 
-        mockDb.execute = MagicMock(return_value=self.execute_return)
+        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
 
         create_county(self.mock_county, mockDb)
 
-        mockDb.execute.assert_called_once()
+        mockDb.exec_driver_sql.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create county should return inserted id"""
@@ -197,6 +199,38 @@ class TestCreateCounty(TestCase):
         res = create_county(self.mock_county, mockDb)
 
         self.assertEqual(res, self.mock_id)
+
+
+class TestCreateCase(TestCase):
+    mock_case = {"type": "death", "amount": 10, "date": datetime.now(), "country_id": 1}
+
+    def test_connect_called(self):
+        """Create case should call connect once"""
+        mockDb = MockDB()
+
+        mockDb.connect = MagicMock(return_value=mockDb)
+
+        create_case(self.mock_case, mockDb)
+
+        mockDb.connect.assert_called_once()
+
+    def test_execute_called(self):
+        """Create case should call execute once"""
+        mockDb = MockDB()
+
+        mockDb.exec_driver_sql = MagicMock(return_value=mockDb)
+
+        create_case(self.mock_case, mockDb)
+
+        mockDb.exec_driver_sql.assert_called_once()
+
+    def test_should_return_true(self):
+        """Create case should return True"""
+        mockDb = MockDB()
+
+        res = create_case(self.mock_case, mockDb)
+
+        self.assertTrue(res)
 
 
 if __name__ == "__main__":
