@@ -1,10 +1,13 @@
-class MockDB(object):
-    execute_return = None
+from typing import Any
 
-    def connect(self, *args, **kwargs):
+
+class MockDB(object):
+    execute_return: Any = None
+
+    def cursor(self, *args, **kwargs):
         return self
 
-    def exec_driver_sql(self, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         return self.execute_return
 
     def __enter__(self):

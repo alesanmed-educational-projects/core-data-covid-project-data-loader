@@ -1,13 +1,14 @@
 import os
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine.base import Engine
+from psycopg2 import connect
+from psycopg2._psycopg import connection  # pylint: disable=no-name-in-module
 
-from .queries import create_case, create_country, create_county, create_province
+from .queries import (create_case, create_country, create_county,
+                      create_province)
 
 
-def get_db() -> Engine:
-    engine = create_engine(
+def get_db() -> connection:
+    return connect(
         (
             f"postgresql://{os.environ.get('POSTGRES_USER', '')}"
             f":{os.environ.get('POSTGRES_PASS', '')}@"
@@ -17,7 +18,9 @@ def get_db() -> Engine:
         )
     )
 
-    return engine
+
+def close_db(conn: connection):
+    return lambda *args, **kwargs: conn.close()
 
 
 __all__ = [
