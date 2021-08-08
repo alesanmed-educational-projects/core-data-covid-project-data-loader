@@ -23,21 +23,21 @@ class TestPlaceExists(TestCase):
 
         mockDb.execute_return = [(0,)]
 
-        mockDb.connect = MagicMock(return_value=mockDb)
+        mockDb.cursor = MagicMock(return_value=mockDb)
 
-        place_exists("Test", mockDb)
+        place_exists("Test", mockDb)  # type: ignore
 
-        mockDb.connect.assert_called_once()
+        mockDb.cursor.assert_called_once()
 
     def test_execute_called(self):
         """Place exists should call execute once"""
         mockDb = MockDB()
 
-        mockDb.exec_driver_sql = MagicMock(return_value=[(0,)])
+        mockDb.execute = MagicMock(return_value=[(0,)])
 
-        place_exists("Test", mockDb)
+        place_exists("Test", mockDb)  # type: ignore
 
-        mockDb.exec_driver_sql.assert_called_once()
+        mockDb.execute.assert_called_once()
 
     def test_should_return_id(self):
         """Place exists should return id if exists"""
@@ -45,7 +45,7 @@ class TestPlaceExists(TestCase):
 
         mockDb.execute_return = [(self.mock_id,)]
 
-        res = place_exists("Test", mockDb)
+        res = place_exists("Test", mockDb)  # type: ignore
 
         self.assertEqual(self.mock_id, res)
 
@@ -55,7 +55,7 @@ class TestPlaceExists(TestCase):
 
         mockDb.execute_return = []
 
-        res = place_exists("Test", mockDb)
+        res = place_exists("Test", mockDb)  # type: ignore
 
         self.assertIsNone(res)
 
@@ -80,21 +80,21 @@ class TestCreateCountry(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        mockDb.connect = MagicMock(return_value=mockDb)
+        mockDb.cursor = MagicMock(return_value=mockDb)
 
-        create_country(self.mock_country, mockDb)
+        create_country(self.mock_country, mockDb)  # type: ignore
 
-        mockDb.connect.assert_called_once()
+        mockDb.cursor.assert_called_once()
 
     def test_execute_called(self):
         """Create country should call execute once"""
         mockDb = MockDB()
 
-        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
+        mockDb.execute = MagicMock(return_value=self.execute_return)
 
-        create_country(self.mock_country, mockDb)
+        create_country(self.mock_country, mockDb)  # type: ignore
 
-        mockDb.exec_driver_sql.assert_called_once()
+        mockDb.execute.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create country should return inserted id"""
@@ -102,7 +102,7 @@ class TestCreateCountry(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        res = create_country(self.mock_country, mockDb)
+        res = create_country(self.mock_country, mockDb)  # type: ignore
 
         self.assertEqual(res, self.mock_id)
 
@@ -127,21 +127,21 @@ class TestCreateProvince(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        mockDb.connect = MagicMock(return_value=mockDb)
+        mockDb.cursor = MagicMock(return_value=mockDb)
 
-        create_province(self.mock_province, mockDb)
+        create_province(self.mock_province, mockDb)  # type: ignore
 
-        mockDb.connect.assert_called_once()
+        mockDb.cursor.assert_called_once()
 
     def test_execute_called(self):
         """Create province should call execute once"""
         mockDb = MockDB()
 
-        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
+        mockDb.execute = MagicMock(return_value=self.execute_return)
 
-        create_province(self.mock_province, mockDb)
+        create_province(self.mock_province, mockDb)  # type: ignore
 
-        mockDb.exec_driver_sql.assert_called_once()
+        mockDb.execute.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create province should return inserted id"""
@@ -149,7 +149,7 @@ class TestCreateProvince(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        res = create_province(self.mock_province, mockDb)
+        res = create_province(self.mock_province, mockDb)  # type: ignore
 
         self.assertEqual(res, self.mock_id)
 
@@ -174,21 +174,21 @@ class TestCreateCounty(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        mockDb.connect = MagicMock(return_value=mockDb)
+        mockDb.cursor = MagicMock(return_value=mockDb)
 
-        create_county(self.mock_county, mockDb)
+        create_county(self.mock_county, mockDb)  # type: ignore
 
-        mockDb.connect.assert_called_once()
+        mockDb.cursor.assert_called_once()
 
     def test_execute_called(self):
         """Create county should call execute once"""
         mockDb = MockDB()
 
-        mockDb.exec_driver_sql = MagicMock(return_value=self.execute_return)
+        mockDb.execute = MagicMock(return_value=self.execute_return)
 
-        create_county(self.mock_county, mockDb)
+        create_county(self.mock_county, mockDb)  # type: ignore
 
-        mockDb.exec_driver_sql.assert_called_once()
+        mockDb.execute.assert_called_once()
 
     def test_should_return_inserted_id(self):
         """Create county should return inserted id"""
@@ -196,7 +196,7 @@ class TestCreateCounty(TestCase):
 
         mockDb.execute_return = self.execute_return
 
-        res = create_county(self.mock_county, mockDb)
+        res = create_county(self.mock_county, mockDb)  # type: ignore
 
         self.assertEqual(res, self.mock_id)
 
@@ -208,27 +208,27 @@ class TestCreateCase(TestCase):
         """Create case should call connect once"""
         mockDb = MockDB()
 
-        mockDb.connect = MagicMock(return_value=mockDb)
+        mockDb.cursor = MagicMock(return_value=mockDb)
 
-        create_case(self.mock_case, mockDb)
+        create_case(self.mock_case, mockDb)  # type: ignore
 
-        mockDb.connect.assert_called_once()
+        mockDb.cursor.assert_called_once()
 
     def test_execute_called(self):
         """Create case should call execute once"""
         mockDb = MockDB()
 
-        mockDb.exec_driver_sql = MagicMock(return_value=mockDb)
+        mockDb.execute = MagicMock(return_value=mockDb)
 
-        create_case(self.mock_case, mockDb)
+        create_case(self.mock_case, mockDb)  # type: ignore
 
-        mockDb.exec_driver_sql.assert_called_once()
+        mockDb.execute.assert_called_once()
 
     def test_should_return_true(self):
         """Create case should return True"""
         mockDb = MockDB()
 
-        res = create_case(self.mock_case, mockDb)
+        res = create_case(self.mock_case, mockDb)  # type: ignore
 
         self.assertTrue(res)
 

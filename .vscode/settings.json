@@ -24,4 +24,14 @@
         "titleBar.activeBackground": "#1C4553",
         "titleBar.activeForeground": "#F6FAFC"
     },
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.unittestEnabled": true,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        ".",
+        "-p",
+        "*test*.py"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

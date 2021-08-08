@@ -58,4 +58,5 @@ COMPONENTS_MAPPING = {
     "country_name": "country",
     "country_code": "country_code",
     "continent": "continent",
+    "territory": "state",
 }
