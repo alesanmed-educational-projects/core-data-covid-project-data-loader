@@ -3,7 +3,13 @@ from typing import Iterable, List, Union
 from psycopg2 import sql
 from psycopg2._psycopg import connection, cursor  # pylint: disable=no-name-in-module
 
-from covid_data.types import OnConflictStrategy, PlaceProperty, PlaceTable, PlaceType
+from covid_data.types import (
+    CaseType,
+    OnConflictStrategy,
+    PlaceProperty,
+    PlaceTable,
+    PlaceType,
+)
 
 
 def place_exists(
@@ -99,6 +105,7 @@ def row_to_dict(rows: Iterable, table: str, engine: connection) -> list[dict]:
                 "SELECT column_name "
                 'FROM information_schema."columns" '
                 "WHERE table_name=%s"
+                "ORDER BY ordinal_position"
             ),
             (table,),
         )
@@ -200,6 +207,44 @@ def create_county(county: dict, engine: connection) -> str:
         engine.commit()
 
         return result[0]
+
+
+def get_cases_by_country(
+    country_id: int, engine: connection, case_type: CaseType = None
+) -> list:
+    with engine.cursor() as cur:
+        cur: cursor
+
+        params = [country_id]
+
+        query = sql.SQL("SELECT * FROM cases WHERE country_id=%s")
+
+        if case_type:
+            query += sql.SQL("AND type=%s")
+            params.append(case_type.value)
+
+        cur.execute(query, tuple(params))
+
+        return row_to_dict(cur.fetchall(), "cases", engine)
+
+
+def get_cases_by_province(
+    country_id: int, province_id: int, engine: connection, case_type: CaseType = None
+) -> list:
+    with engine.cursor() as cur:
+        cur: cursor
+
+        params = [country_id, province_id]
+
+        query = sql.SQL("SELECT * FROM cases WHERE country_id=%s AND province_id=%s")
+
+        if case_type:
+            query += sql.SQL("AND type=%s")
+            params.append(case_type.value)
+
+        cur.execute(query, tuple(params))
+
+        return row_to_dict(cur.fetchall(), "cases", engine)
 
 
 def create_case(

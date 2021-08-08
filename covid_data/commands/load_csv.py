@@ -7,17 +7,24 @@ from logging import getLogger
 import pandas as pd
 
 from covid_data.db import close_db, get_db
-from covid_data.db.queries import create_case
+from covid_data.db.queries import (
+    create_case,
+    get_cases_by_country,
+    get_cases_by_province,
+)
+from covid_data.errors import (
+    PlaceInfoFetchException,
+    PlaceInfoNotCompleteException,
+    PlaceNameNotProvidedException,
+    PlaceNotMatchedException,
+)
 from covid_data.types import CaseType, OnConflictStrategy
-from covid_data.utils.places import (CreatedPlace, PlaceInfoFetchException,
-                                     PlaceInfoNotCompleteException,
-                                     PlaceNameNotProvidedException,
-                                     create_country, create_province)
+from covid_data.utils.places import CreatedPlace, create_country, create_province
 
 logger = getLogger("covid-data")
 
 
-def insert_data(df: pd.DataFrame, case_type: CaseType) -> None:
+def insert_data(df: pd.DataFrame, case_type: CaseType, optimize: bool = True) -> None:
     with ExitStack() as stack:
         engine = get_db()
 
@@ -38,6 +45,7 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> None:
                 logger.warning(f"Skipping line {index + 2} due to missing location")
                 continue
 
+            err = False
             try:
                 if not pd.isna(state):
                     created_province = create_province(state.replace("*", ""), engine)
@@ -45,26 +53,51 @@ def insert_data(df: pd.DataFrame, case_type: CaseType) -> None:
                 if not pd.isna(country):
                     created_country = create_country(country.replace("*", ""), engine)
             except PlaceInfoFetchException:
+                err = True
                 logger.error(f"Skipping line {index + 2}")
-            except PlaceInfoNotCompleteException:
+            except (PlaceInfoNotCompleteException, PlaceNotMatchedException):
+                err = True
                 logger.error(
                     f"Skipping line {index + 2} due to incomplete information in fetching"
                 )
             except PlaceNameNotProvidedException:
+                err = True
                 logger.error(
                     f"Skipping line {index + 2} because no place name could be extracted"
                 )
             except (TypeError, KeyError) as e:
+                err = True
                 logger.error(e)
                 logger.error(
                     f"Skipping line {index + 2} due to missing information in fetching"
                 )
 
-            rows = df.columns.drop(["Province/State", "Country/Region", "Lat", "Long"])
+            if err:
+                continue
 
-            num_columns = len(rows)
+            cols = df.columns.drop(["Province/State", "Country/Region", "Lat", "Long"])
 
-            for i, date_str in enumerate(rows):
+            num_columns = len(cols)
+
+            saved_cases = []
+
+            if created_province.province_id and created_country.country_id:
+                saved_cases = get_cases_by_province(
+                    int(created_country.country_id),
+                    int(created_province.province_id),
+                    engine,
+                    case_type,
+                )
+            elif created_country.country_id:
+                saved_cases = get_cases_by_country(
+                    int(created_country.country_id), engine, case_type
+                )
+
+            if len(saved_cases) >= num_columns:
+                logger.debug(f"Skipping line {index + 2} for optimizations")
+                continue
+
+            for i, date_str in enumerate(cols):
                 logger.debug(f"Processing case {i+1}/{num_columns}")
                 date_padded: str
 
