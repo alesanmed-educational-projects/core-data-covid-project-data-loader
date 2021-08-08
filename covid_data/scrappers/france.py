@@ -10,12 +10,23 @@ from covid_data.db import close_db, get_db
 from covid_data.db.queries import OnConflictStrategy, create_case
 from covid_data.errors import DateFetchException
 from covid_data.logger import init_logger
-from covid_data.types import CaseType
+from covid_data.types import CaseType, PlaceType
 from covid_data.utils.places import create_country, create_province
 
 logger = logging.getLogger("covid-data")
 
 START_DATE = datetime.datetime(2020, 3, 2)
+
+ALT_NAMES = {"Guyane": "French Guiana"}
+ALT_TYPES = {
+    "Guadeloupe": PlaceType.STATE,
+    "Martinique": PlaceType.STATE,
+    "French Guiana": PlaceType.STATE,
+    "Île-de-France": PlaceType.STATE,
+    "Centre-Val de Loire": PlaceType.STATE,
+    "Grand Est": PlaceType.STATE,
+    "Pays de la Loire": PlaceType.STATE,
+}
 
 
 def scrap_cases(engine: connection, start_date: datetime.datetime = START_DATE) -> None:
@@ -48,8 +59,14 @@ def scrap_cases(engine: connection, start_date: datetime.datetime = START_DATE) 
             if code == "FRA":
                 created_place = create_country(code, engine)
             else:
-                nom = piece["nom"]
-                created_place = create_province(nom, engine, None, f"{nom}, France")
+                nom = ALT_NAMES.get(piece["nom"], piece["nom"])
+                created_place = create_province(
+                    nom,
+                    engine,
+                    None,
+                    f"{nom}, France",
+                    ALT_TYPES.get(nom, PlaceType.CITY),
+                )
 
             if "testsPositifs" not in piece and "casConfirmes" not in piece:
                 positive_cases = 0
@@ -101,6 +118,9 @@ def scrap():
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    load_dotenv()
     init_logger(
         os.path.join(os.path.dirname(__file__), "../../logs/covid_data.log"),
         logging.INFO,
@@ -108,7 +128,7 @@ if __name__ == "__main__":
     engine = get_db()
 
     try:
-        scrap_cases(engine)
+        scrap_cases(engine, START_DATE + datetime.timedelta(days=350))
     except Exception as e:
         raise e
     finally:
