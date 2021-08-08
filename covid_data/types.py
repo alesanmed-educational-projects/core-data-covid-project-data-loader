@@ -62,7 +62,7 @@ class PlaceProperty(Enum):
     ALPHA_3_CODE = "alpha3Code"
 
 
-class OnConflictStrategy(Enum):
+class OnConflictStrategy(IntEnum):
     REPLACE = 1
     ADD = 2
 

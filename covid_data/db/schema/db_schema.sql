@@ -6,10 +6,14 @@ END $$;
 CREATE TABLE IF NOT EXISTS countries (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR NOT NULL,
-	alpha2 VARCHAR(2) UNIQUE NOT NULL,
-	alpha3 VARCHAR(3) UNIQUE NOT NULL,
+	alpha2 VARCHAR(2) UNIQUE,
+	alpha3 VARCHAR(3) UNIQUE,
 	location GEOGRAPHY(POINT) NOT NULL,
-	geom geometry(Polygon, 4326)
+	geom geometry(Polygon, 4326),
+	CONSTRAINT one_alpha_code CHECK (
+		alpha2 IS NOT NULL
+		OR alpha3 IS NOT NULL
+	)
 );
 CREATE INDEX idx_countries_alpha2 ON countries (alpha2);
 CREATE INDEX idx_countries_alpha3 ON countries (alpha3);
@@ -20,7 +24,7 @@ CREATE TABLE IF NOT EXISTS provinces (
 	location GEOGRAPHY(POINT) NOT NULL,
 	geom geometry(Polygon, 4326),
 	code VARCHAR(3),
-	country_id INT REFERENCES countries (id),
+	country_id INT REFERENCES countries (id) NOT NULL,
 	UNIQUE(name, code, country_id)
 );
 CREATE INDEX idx_provinces_code ON provinces (code);

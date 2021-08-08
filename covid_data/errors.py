@@ -9,6 +9,7 @@ class PlaceInfoFetchException(Exception):
 class PlaceInfoNotCompleteException(Exception):
     pass
 
+
 class PlaceNotMatchedException(Exception):
     pass
 
